@@ -1,0 +1,73 @@
+#include <iostream>
+
+class PriorityQueue
+{
+private:
+	void heapify(int array[], int elementsCount, int rootIndex)
+	{
+		int largest = rootIndex;
+		int leftChild = 2 * rootIndex + 1;
+		int rightChild = 2 * rootIndex + 2;
+
+		if (leftChild < elementsCount && array[leftChild] > array[largest])
+		{
+			largest = leftChild;
+		}
+
+		if (rightChild < elementsCount && array[rightChild] > array[largest])
+		{
+			largest = rightChild;
+		}
+
+		if (largest != rootIndex)
+		{
+			int temp = array[rootIndex];
+			array[rootIndex] = array[largest];
+			array[largest] = temp;
+
+			heapify(array, elementsCount, largest);
+		}
+	}
+
+public:
+	void heapSort(int array[], int elementsCount)
+	{
+		int leftPointer = elementsCount / 2 - 1;
+		int rightPointer = elementsCount - 1;
+
+		for (int i = leftPointer; i >= 0; i--)
+		{
+			heapify(array, elementsCount, i);
+		}
+
+		for (int i = rightPointer; i > 0; i--)
+		{
+			int temp = array[0];
+			array[0] = array[i];
+			array[i] = temp;
+
+			heapify(array, i, 0);
+		}
+	}
+
+	void print(int array[], int elementsCount)
+	{
+		for (int i = 0; i < elementsCount; i++)
+		{
+			std::cout << " " << array[i];
+		}
+		std::cout << "\nelementsCount: " << elementsCount << std::endl;
+	}
+};
+
+int main()
+{
+	int array[]{ 9, 4, 3, 8, 10, 2, 5 };
+	int elementsCount = sizeof(array) / sizeof(array[0]);
+
+	PriorityQueue queue{};
+	queue.heapSort(array, elementsCount);
+
+	std::cout << "Sorted array is: ";
+	queue.print(array, elementsCount);
+}
