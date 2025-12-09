@@ -1,1 +1,231 @@
-Lab_2
+#include <iostream>
+#include <cassert>
+#include <utility>
+#include <algorithm>
+
+class dynamic_array
+{
+private:
+	int* data;
+	size_t size;
+public:
+	~dynamic_array()
+	{
+		delete[] data;
+		data = nullptr;
+		size = 0;
+	}
+	dynamic_array()
+	{
+		size = 0;
+		data = nullptr;
+	}
+	dynamic_array(size_t n)
+	{
+		size = n;
+		data = new int[n];
+
+		for (size_t i = 0; i < size; ++i)
+		{
+			data[i] = 0;
+		}
+	}
+	dynamic_array(const dynamic_array& arr)
+	{
+		size = arr.size;
+		data = new int[size];
+
+		for (size_t i = 0; i < size; ++i)
+		{
+			data[i] = arr.data[i];
+		}
+	}
+	dynamic_array(dynamic_array&& arr) noexcept
+	{
+		data = arr.data;
+		size = arr.size;
+
+		arr.data = nullptr;
+		arr.size = 0;
+	}
+
+	dynamic_array& operator=(const dynamic_array& arr)
+	{
+		if (this == &arr) return *this;
+
+		auto tmp = dynamic_array(arr);
+		swap(tmp);
+		return *this;
+	}
+	dynamic_array& operator=(dynamic_array&& arr) noexcept
+	{
+		if (this == &arr) return *this;
+
+		delete[] data;
+		data = arr.data;
+		size = arr.size;
+		arr.data = nullptr;
+		arr.size = 0;
+
+		return *this;
+	}
+
+	int& operator[] (size_t index)
+	{
+		return data[index];
+	}
+	const int& operator[] (size_t index) const
+	{
+		return data[index];
+	}
+
+	size_t get_size() const
+	{
+		return size;
+	}
+	void resize(size_t new_size)
+	{
+		if (new_size == size) return;
+
+		int* temp_data = new int[new_size];
+		size_t n = std::min(size, new_size);
+		for (size_t i = 0; i < n; ++i) temp_data[i] = data[i];
+		for (size_t i = n; i < new_size; ++i) temp_data[i] = 0;
+
+		delete[] data;
+		data = temp_data;
+		size = new_size;
+	}
+	void clear()
+	{
+		delete[] data;
+		data = nullptr;
+		size = 0;
+	}
+	void swap(dynamic_array& arr) noexcept
+	{
+		std::swap(data, arr.data);
+		std::swap(size, arr.size);
+	}
+};
+
+class priority_queue
+{
+private:
+	dynamic_array array;
+public:
+	~priority_queue()
+	{
+		clear();
+	}
+	priority_queue()
+	{
+		array = dynamic_array();
+	}
+	priority_queue(size_t n)
+	{
+		array = dynamic_array(n);
+	}
+	priority_queue(const int arr[], size_t n)
+	{
+		array = dynamic_array(n);
+
+		for (size_t i = 0; i < size(); i++)
+		{
+			array[i] = arr[i];
+		}
+	}
+	priority_queue(std::initializer_list<int> list) : array(list.size())
+	{
+		size_t i = 0;
+		for (int v : list) array[i++] = v;
+	}
+	priority_queue(const priority_queue& a)
+	{
+		array = dynamic_array(a.array);
+	}
+	priority_queue(priority_queue&& a) noexcept
+	{
+		array = dynamic_array(std::move(a.array));
+	}
+
+	void clear()
+	{
+		array.clear();
+	}
+	int at(int index)
+	{
+		if (size() == 0) return -1;
+		if (index < 0) return array[0];
+		if (index >= size()) return array[size() - 1];
+		return array[index];
+	}
+	void resize(size_t new_size)
+	{
+		array.resize(new_size);
+	}
+	void assign(size_t new_size, int value)
+	{
+		array.resize(new_size);
+		for (size_t i = 0; i < array.get_size(); i++)
+		{
+			array[i] = value;
+		}
+	}
+	bool empty() const
+	{
+		return size() == 0;
+	}
+	void swap(priority_queue& queue)
+	{
+		array.swap(queue.array);
+	}
+	size_t size() const
+	{
+		return array.get_size();
+	}
+	static bool is_equal(const priority_queue& queue1, const priority_queue& queue2)
+	{
+		if (queue1.size() != queue2.size()) return false;
+
+		for (size_t i = 0; i < queue1.size(); ++i)
+		{
+			if (queue1.array[i] != queue2.array[i]) return false;
+		}
+
+		return true;
+	}
+};
+
+using container = priority_queue;
+
+int main()
+{
+	int array[] = { 1, 4, 7, 9 };
+	container a(array, 4);
+	assert(4 == a.size());
+	assert(1 == a.at(0));
+	assert(9 == a.at(10));
+
+	container b(a);
+	assert(container::is_equal(a, b));
+	b.clear();
+	assert(b.empty());
+
+	container c;
+	assert(c.empty());
+	c.assign(3, 7);
+	assert(3 == c.size());
+
+	container d(5);
+	assert(5 == d.size());
+	d.resize(10);
+	b.swap(d);
+	assert(10 == b.size());
+	assert(d.empty());
+
+	container e = std::move(b);
+	assert(10 == e.size());
+	assert(b.empty());
+	std::cout << "SUCCESS" << std::endl;
+}
