@@ -1,0 +1,320 @@
+#include <iostream>
+#include <cassert>
+#include <utility>
+#include <algorithm>
+#include <sstream>
+
+class dynamic_array {
+private:
+	int* data;
+	size_t size;
+public:
+	~dynamic_array() {
+		delete[] data;
+		data = nullptr;
+		size = 0;
+	}
+	dynamic_array() {
+		size = 0;
+		data = nullptr;
+	}
+	dynamic_array(size_t n) {
+		size = n;
+		data = new int[n];
+
+		for (size_t i = 0; i < size; ++i) {
+			data[i] = 0;
+		}
+	}
+	dynamic_array(const dynamic_array& arr) {
+		size = arr.size;
+		data = new int[size];
+
+		for (size_t i = 0; i < size; ++i) {
+			data[i] = arr.data[i];
+		}
+	}
+	dynamic_array(std::initializer_list<int> list) : dynamic_array(list.size()) {
+		size_t i = 0;
+		for (int value : list) {
+			data[i] = value;
+			i++;
+		}
+	}
+	dynamic_array(dynamic_array&& arr) noexcept
+	{
+		data = arr.data;
+		size = arr.size;
+
+		arr.data = nullptr;
+		arr.size = 0;
+	}
+
+	dynamic_array& operator=(const dynamic_array& arr) {
+		if (this == &arr) return *this;
+
+		dynamic_array temp = dynamic_array(arr);
+		swap(temp);
+
+		return *this;
+	}
+	dynamic_array& operator=(dynamic_array&& arr) noexcept {
+		if (this == &arr) return *this;
+
+		delete[] data;
+		data = arr.data;
+		size = arr.size;
+		arr.data = nullptr;
+		arr.size = 0;
+
+		return *this;
+	}
+	int& operator[] (size_t index) {
+		return data[index];
+	}
+	const int& operator[] (size_t index) const {
+		return data[index];
+	}
+	friend bool operator==(const dynamic_array& arr1, const dynamic_array& arr2) {
+		if (arr1.size != arr2.size) return false;
+
+		for (size_t i = 0; i < arr1.size; i++) {
+			if (arr1[i] != arr2[i]) return false;
+		}
+
+		return true;
+	}
+	friend bool operator!=(const dynamic_array& arr1, const dynamic_array& arr2) {
+		return !(arr1 == arr2);
+	}
+	friend bool operator<(const dynamic_array& arr1, const dynamic_array& arr2) {
+		size_t min_value = std::min(arr1.get_size(), arr2.get_size());
+
+		for (size_t i = 0; i < min_value; i++) {
+			if (arr1[i] < arr2[i]) return true;
+			if (arr1[i] > arr2[i]) return false;
+		}
+
+		return arr1.get_size() < arr2.get_size() ? true : false;
+	}
+	friend bool operator>(const dynamic_array& arr1, const dynamic_array& arr2) {
+		return arr2 < arr1;
+	}
+	friend bool operator<=(const dynamic_array& arr1, const dynamic_array& arr2) {
+		return !(arr1 > arr2);
+	}
+	friend bool operator>=(const dynamic_array& arr1, const dynamic_array& arr2) {
+		return !(arr1 < arr2);
+	}
+	friend std::ostream& operator<<(std::ostream& stream, const dynamic_array& arr) {
+		for (size_t i = 0; i < arr.size; ++i) {
+			stream << arr[i] << " ";
+		}
+		stream << std::endl;
+		return stream;
+	}
+	friend std::istream& operator>>(std::istream& stream, dynamic_array& arr) {
+		for (size_t i = 0; i < arr.size; ++i) {
+			if (!(stream >> arr[i])) break;
+		}
+		return stream;
+	}
+
+	size_t get_size() const const {
+		return size;
+	}
+	bool empty() const {
+		return size == 0;
+	}
+	void clear() {
+		delete[] data;
+		data = nullptr;
+		size = 0;
+	}
+	void swap(dynamic_array& arr) noexcept {
+		std::swap(data, arr.data);
+		std::swap(size, arr.size);
+	}
+
+	size_t count(int value) {
+		size_t counter = 0;
+
+		for (size_t i = 0; i < size; i++) {
+			if (data[i] == value) counter++;
+		}
+
+		return counter;
+	}
+	void resize(size_t new_size) {
+		if (new_size == size) return;
+
+		int* temp_data = new int[new_size];
+		size_t n = std::min(size, new_size);
+		for (size_t i = 0; i < n; ++i) temp_data[i] = data[i];
+		for (size_t i = n; i < new_size; ++i) temp_data[i] = 0;
+
+		delete[] data;
+		data = temp_data;
+		size = new_size;
+	}
+	void assign(size_t new_size, int value) {
+		resize(new_size);
+
+		for (size_t i = 0; i < size; i++) {
+			data[i] = value;
+		}
+	}
+	void push_back(int value) {
+		data[size] = value;
+		size++;
+	}
+	bool contains(int value) {
+		for (size_t i = 0; i < size; i++) {
+			if (data[i] == value) return true;
+		}
+
+		return false;
+	}
+	int at(int index) {
+		if (size == 0) return -1;
+		if (index < 0) return data[0];
+		if (index >= size) return data[size - 1];
+		return data[index];
+	}
+	static bool is_equal(const dynamic_array& arr1, const dynamic_array& arr2) {
+		if (arr1.size != arr2.size) return false;
+
+		for (size_t i = 0; i < arr1.size; ++i) {
+			if (arr1[i] != arr2[i]) return false;
+		}
+
+		return true;
+	}
+};
+
+class priority_queue {
+private:
+	dynamic_array array;
+public:
+	~priority_queue() = default;
+	priority_queue() = default;
+	priority_queue(size_t n) { array = dynamic_array(n); }
+	priority_queue(const dynamic_array& arr) { array = dynamic_array(arr); }
+	priority_queue(std::initializer_list<int> list) { array = dynamic_array(list); }
+	priority_queue(dynamic_array&& arr) noexcept { array = std::move(arr); }
+
+	priority_queue& operator=(const dynamic_array& arr) {
+		array = arr;
+		return *this;
+	}
+	priority_queue& operator=(dynamic_array&& arr) noexcept {
+		array = std::move(arr);
+		return *this;
+	}
+
+	size_t size() const {
+		return array.get_size();
+	}
+	int top() const {
+		return array[0];
+	}
+	bool empty() const {
+		return !size();
+	}
+	void swap(priority_queue& q) noexcept {
+		std::swap(array, q.array);
+	}
+	void push(int value) {
+		array.push_back(value);
+		sift_up(size() - 1);
+	}
+	void pop() {
+		if (empty()) return;
+
+		array[0] = array[size() - 1];
+		array.resize(size() - 1);
+		heapify(0);
+	}
+	void build_heap() {
+		int parent_node = size() / 2 - 1;
+		for (int i = parent_node; i >= 0; i--)
+			heapify(i);
+	}
+private:
+	void sift_up(size_t i) {
+		while (i > 0) {
+			size_t parent_node = (i - 1) / 2;
+			if (array[parent_node] >= array[i]) break;
+			std::swap(array[parent_node], array[i]);
+			i = parent_node;
+		}
+	}
+	void heapify(int i) {
+		int largest = i;
+		int left = 2 * i + 1;
+		int right = 2 * i + 2;
+
+		if (left < size() && array[left] > array[largest])
+			largest = left;
+
+		if (right < size() && array[right] > array[largest])
+			largest = right;
+
+		if (largest != i) {
+			std::swap(array[i], array[largest]);
+			heapify(largest);
+		}
+	}
+};
+
+static void print(dynamic_array& arr) {
+	for (size_t i = 0; i < arr.get_size(); i++) {
+		std::cout << arr[i] << " ";
+	}
+	std::cout << std::endl;
+}
+
+using container = dynamic_array;
+
+int main() {
+	std::stringstream ss{ "1 3 5 7 9" };
+	container a(5);
+	ss >> a;
+	assert(5 == a.get_size());
+	assert(1 == a[0]);
+	assert(9 == a[4]);
+	std::cout << a;
+	container b{ a };
+	assert(a == b);
+	assert(3 == b[1]);
+	assert(7 == b[3]);
+	b[4] = 0;
+	assert(0 == b[4]);
+	assert(!b.contains(9));
+	assert(b < a);
+	assert(a > b);
+	std::cout << b;
+	container c;
+	assert(0 == c.get_size());
+	c = b;
+	assert(b == c);
+	c[1] = c[2] = 7;
+	assert(7 == c[1]);
+	assert(7 == c[2]);
+	assert(3 == c.count(7));
+	std::cout << c;
+	b = container({ 1, 3, 5, 7, 9 });
+	assert(5 == b.get_size());
+	assert(1 == b[0]);
+	assert(9 == b[4]);
+	c = std::move(b);
+	assert(9 == c[4]);
+	assert(c.contains(7));
+	assert(b.empty());
+	assert(b < c);
+
+	std::cout << "HEAP:" << std::endl;
+	priority_queue q = dynamic_array{ 1, 2, 3, 4, 5 };
+	q.build_heap();
+	for (; q.size(); q.pop()) std::cout << q.top() << " ";
+}
