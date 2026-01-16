@@ -256,4 +256,256 @@ public:
 		return !(arr1 < arr2);
 	}
 	friend std::ostream& operator<<(std::ostream& stream, const dynamic_array& arr) {
-		for (size_t i_
+		for (size_t i = 0; i < arr.size; ++i) {
+			stream << arr[i] << " ";
+		}
+		stream << std::endl;
+		return stream;
+	}
+	friend std::istream& operator>>(std::istream& stream, dynamic_array& arr) {
+		for (size_t i = 0; i < arr.size; ++i) {
+			if (!(stream >> arr[i])) break;
+		}
+		return stream;
+	}
+
+	size_t get_size() const {
+		return size;
+	}
+	bool empty() const {
+		return size == 0;
+	}
+	void clear() {
+		delete[] data;
+		data = nullptr;
+		size = 0;
+	}
+	void swap(dynamic_array& arr) noexcept {
+		std::swap(data, arr.data);
+		std::swap(size, arr.size);
+	}
+
+	size_t count(T value) {
+		size_t counter = 0;
+
+		for (size_t i = 0; i < size; i++) {
+			if (data[i] == value) counter++;
+		}
+
+		return counter;
+	}
+	void resize(size_t new_size) {
+		if (new_size == size) return;
+
+		T* temp_data = new T[new_size];
+		size_t n = std::min(size, new_size);
+		for (size_t i = 0; i < n; ++i) temp_data[i] = data[i];
+		for (size_t i = n; i < new_size; ++i) temp_data[i] = T{};
+
+		delete[] data;
+		data = temp_data;
+		size = new_size;
+	}
+	void assign(size_t new_size, T value) {
+		resize(new_size);
+
+		for (size_t i = 0; i < size; i++) {
+			data[i] = value;
+		}
+	}
+	void push_back(T value) {
+		T* tmp = new T[size + 1];
+		for (size_t i = 0; i < size; ++i) tmp[i] = data[i];
+		tmp[size] = value;
+		delete[] data;
+		data = tmp;
+		++size;
+	}
+	bool contains(T value) {
+		for (size_t i = 0; i < size; i++) {
+			if (data[i] == value) return true;
+		}
+
+		return false;
+	}
+	T at(int index) {
+		if (size == 0) return T{};
+		if (index < 0) return data[0];
+		if (index >= static_cast<int>(size)) return data[size - 1];
+		return data[index];
+	}
+	static bool is_equal(const dynamic_array& arr1, const dynamic_array& arr2) {
+		if (arr1.size != arr2.size) return false;
+
+		for (size_t i = 0; i < arr1.size; ++i) {
+			if (arr1[i] != arr2[i]) return false;
+		}
+
+		return true;
+	}
+
+	iterator find(const T& value) const {
+		for (iterator i = begin(); i != end(); ++i)
+			if (value == *i) return i;
+		return end();
+	}
+	iterator insert(iterator position, const T& value) {
+		auto index = position - begin();
+		T* tmp = new T[size + 1];
+		
+		for (size_t i = 0; i < index; ++i) 
+			tmp[i] = data[i];
+
+		tmp[index] = value;
+
+		for (size_t i = index; i < size; ++i) 
+			tmp[i + 1] = data[i];
+
+		delete[] data;
+		data = tmp;
+		++size;
+
+		return iterator(data + index);
+	}
+	iterator erase(iterator position) {
+		if (position == end()) return end();
+		if (size == 0) return end();
+
+		auto index = position - begin();
+		T* tmp = new T{};
+		
+		for (size_t i = 0; i < index; ++i) 
+			tmp[i] = data[i];
+		for (size_t i = index + 1; i < size; ++i) 
+			tmp[i - 1] = data[i];
+
+		delete[] data;
+		data = tmp;
+		--size;
+
+		return iterator(data + index);
+	}
+	static size_t erase(dynamic_array<T>& arr, const T& value) {
+		size_t write = 0;
+		for (size_t read = 0; read < arr.size; ++read) {
+			if (!(arr.data[read] == value)) {
+				arr.data[write++] = arr.data[read];
+			}
+		}
+
+		size_t removed = arr.size - write;
+		if (removed > 0) {
+			T* tmp = new T[write];
+			for (size_t i = 0; i < write; ++i) tmp[i] = arr.data[i];
+			delete[] arr.data;
+			arr.data = tmp;
+			arr.size = write;
+		}
+
+		return removed;
+	}
+};
+
+template <class T, class Container = dynamic_array<T>>
+class priority_queue {
+private:
+	Container array;
+public:
+	~priority_queue() = default;
+	priority_queue() = default;
+	priority_queue(const priority_queue& q) = default;
+	priority_queue(size_t n) { array = dynamic_array<T>(n); }
+	priority_queue(const dynamic_array<T>& arr) { array = dynamic_array<T>(arr); }
+	priority_queue(std::initializer_list<T> list) { array = dynamic_array<T>(list); }
+	priority_queue(dynamic_array<T>&& arr) noexcept { array = std::move(arr); }
+
+	priority_queue& operator=(const dynamic_array<T>& arr) {
+		array = arr;
+		return *this;
+	}
+	priority_queue& operator=(dynamic_array<T>&& arr) noexcept {
+		array = std::move(arr);
+		return *this;
+	}
+
+	size_t size() const {
+		return array.get_size();
+	}
+	T top() const {
+		return array[0];
+	}
+	bool empty() const {
+		return !size();
+	}
+	void swap(priority_queue<T>& q) noexcept {
+		std::swap(array, q.array);
+	}
+	void push(T value) {
+		array.push_back(value);
+		sift_up(size() - 1);
+	}
+	void pop() {
+		if (empty()) return;
+
+		array[0] = array[size() - 1];
+		array.resize(size() - 1);
+		heapify(0);
+	}
+	void build_heap() {
+		if (size() <= 1) return;
+
+		int parent_node = static_cast<int>(size() / 2 - 1);
+		for (int i = parent_node; i >= 0; i--)
+			heapify(i);
+	}
+private:
+	void sift_up(size_t i) {
+		while (i > 0) {
+			size_t parent_node = (i - 1) / 2;
+			if (array[parent_node] >= array[i]) break;
+			std::swap(array[parent_node], array[i]);
+			i = parent_node;
+		}
+	}
+	void heapify(int i) {
+		int largest = i;
+		int left = 2 * i + 1;
+		int right = 2 * i + 2;
+
+		if (left < static_cast<int>(size()) && array[left] > array[largest])
+			largest = left;
+
+		if (right < static_cast<int>(size()) && array[right] > array[largest])
+			largest = right;
+
+		if (largest != i) {
+			std::swap(array[i], array[largest]);
+			heapify(largest);
+		}
+	}
+};
+
+template<typename T>
+static void print(dynamic_array<T>& arr) {
+	for (size_t i = 0; i < arr.get_size(); i++) {
+		std::cout << arr[i] << " ";
+	}
+	std::cout << std::endl;
+}
+
+using container = dynamic_array<int>;
+
+int main() {
+	priority_queue<int> pq1;
+	pq1.push(5);
+	assert(1 == pq1.size());
+
+	priority_queue<int> pq2{ pq1 };
+	assert(pq1.size() == pq2.size());
+
+	priority_queue<int> pq3({ 3, 1, 4, 1, 5 });
+	assert(5 == pq3.size());
+
+	for (; !pq3.empty(); pq3.pop())
+		std::cout << pq3.top() << " ";
+}
