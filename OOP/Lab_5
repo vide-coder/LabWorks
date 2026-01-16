@@ -1,0 +1,259 @@
+#include <iostream>
+#include <cassert>
+#include <utility>
+#include <iterator>
+#include <algorithm>
+#include <cstddef>
+#include <sstream>
+
+template<typename T>
+class dynamic_array {
+private:
+	T* data;
+	size_t size;
+public:
+	class iterator {
+	private:
+		T* current_element{ nullptr };
+	public:
+		using iterator_category = std::random_access_iterator_tag;
+		using difference_type = std::ptrdiff_t;
+		using value_type = T;
+		using pointer = T*;
+		using reference = T&;
+
+		~iterator() = default;
+		iterator() = default;
+		iterator(T* p) : current_element(p) {}
+		iterator(const iterator& it) = default;
+		iterator(iterator&& it) = default;
+
+		iterator& operator=(const iterator& other) = default;
+		iterator& operator=(iterator&& other) = default;
+		iterator& operator+=(iterator::difference_type n) {
+			current_element += n;
+			return *this;
+		}
+		iterator& operator-=(iterator::difference_type n) {
+			current_element -= n;
+			return *this;
+		}
+		iterator operator+(iterator::difference_type n) const {
+			return iterator(current_element + n);
+		}
+		iterator operator-(iterator::difference_type n) const {
+			return iterator(current_element - n);
+		}
+		iterator::difference_type operator-(const iterator& it) const {
+			return current_element - it.current_element;
+		}
+		iterator& operator++() {
+			++current_element;
+			return *this;
+		}
+		iterator operator++(int) {
+			iterator it = *this;
+			++current_element;
+			return it;
+		}
+		iterator& operator--() {
+			--current_element;
+			return *this;
+		}
+		iterator operator--(int) {
+			iterator it = *this;
+			--current_element;
+			return it;
+		}
+		reference operator[](iterator::difference_type n) const {
+			return *(current_element + n);
+		}
+		bool operator<(const iterator& it) const {
+			return current_element < it.current_element;
+		}
+		bool operator>(const iterator& it) const {
+			return current_element > it.current_element;
+		}
+		bool operator<=(const iterator& it) const {
+			return current_element <= it.current_element;
+		}
+		bool operator>=(const iterator& it) const {
+			return current_element >= it.current_element;
+		}
+		friend bool operator==(const iterator& first, const iterator& second) {
+			return first.current_element == second.current_element;
+		}
+		friend bool operator!=(const iterator& first, const iterator& second) {
+			return first.current_element != second.current_element;
+		}
+		reference operator*() const {
+			return *current_element;
+		}
+	};
+
+	iterator begin() {
+		return iterator(data);
+	}
+	iterator end() {
+		return iterator(data + size);
+	}
+	iterator begin() const {
+		return iterator(data);
+	}
+	iterator end() const {
+		return iterator(data + size);
+	}
+	auto rbegin() {
+		return std::reverse_iterator(end());
+	}
+	auto rend() {
+		return std::reverse_iterator(begin());
+	}
+	auto rbegin() const {
+		return std::reverse_iterator(end());
+	}
+	auto rend() const {
+		return std::reverse_iterator(begin());
+	}
+
+	void assign(iterator first, iterator last) {
+		auto distance = std::distance(first, last);
+		if (distance < 0) return;
+
+		size_t n = static_cast<size_t>(distance);
+		T* tmp = new T[n];
+
+		size_t i = 0;
+		for (auto it = first; it != last; ++it) {
+			tmp[i] = *it;
+			i++;
+		}
+
+		delete[] data;
+		data = tmp;
+		size = n;
+	}
+	void assign(std::reverse_iterator<iterator> first, std::reverse_iterator<iterator> last) {
+		auto distance = std::distance(first, last);
+		if (distance < 0) return;
+
+		size_t n = static_cast<size_t>(distance);
+		T* tmp = new T[n];
+
+		size_t i = 0;
+		for (auto it = first; it != last; ++it) {
+			tmp[i] = *it;
+			i++;
+		}
+
+		delete[] data;
+		data = tmp;
+		size = n;
+	}
+
+	~dynamic_array() {
+		delete[] data;
+		data = nullptr;
+		size = 0;
+	}
+	dynamic_array() {
+		size = 0;
+		data = nullptr;
+	}
+	dynamic_array(size_t n) {
+		size = n;
+		data = new T[n];
+
+		for (size_t i = 0; i < size; ++i) {
+			data[i] = T{};
+		}
+	}
+	dynamic_array(iterator first, iterator last) : dynamic_array(0) {
+		assign(first, last);
+	}
+	dynamic_array(std::reverse_iterator<iterator> first, std::reverse_iterator<iterator> last) : dynamic_array(0) {
+		assign(first, last);
+	}
+	dynamic_array(const dynamic_array& arr) {
+		size = arr.size;
+		data = new T[size];
+
+		for (size_t i = 0; i < size; ++i) {
+			data[i] = arr.data[i];
+		}
+	}
+	dynamic_array(std::initializer_list<T> list) : dynamic_array(list.size()) {
+		size_t i = 0;
+		for (T value : list) {
+			data[i] = value;
+			i++;
+		}
+	}
+	dynamic_array(dynamic_array&& arr) noexcept
+	{
+		data = arr.data;
+		size = arr.size;
+
+		arr.data = nullptr;
+		arr.size = 0;
+	}
+
+	dynamic_array& operator=(const dynamic_array& arr) {
+		if (this == &arr) return *this;
+
+		dynamic_array temp = dynamic_array(arr);
+		swap(temp);
+
+		return *this;
+	}
+	dynamic_array& operator=(dynamic_array&& arr) noexcept {
+		if (this == &arr) return *this;
+
+		delete[] data;
+		data = arr.data;
+		size = arr.size;
+		arr.data = nullptr;
+		arr.size = 0;
+
+		return *this;
+	}
+
+	T& operator[] (size_t index) {
+		return data[index];
+	}
+	const T& operator[] (size_t index) const {
+		return data[index];
+	}
+	friend bool operator==(const dynamic_array& arr1, const dynamic_array& arr2) {
+		if (arr1.size != arr2.size) return false;
+
+		for (size_t i = 0; i < arr1.size; i++) {
+			if (arr1[i] != arr2[i]) return false;
+		}
+
+		return true;
+	}
+	friend bool operator!=(const dynamic_array& arr1, const dynamic_array& arr2) {
+		return !(arr1 == arr2);
+	}
+	friend bool operator<(const dynamic_array& arr1, const dynamic_array& arr2) {
+		size_t min_value = std::min(arr1.get_size(), arr2.get_size());
+
+		for (size_t i = 0; i < min_value; i++) {
+			if (arr1[i] < arr2[i]) return true;
+			if (arr2[i] < arr1[i]) return false;
+		}
+
+		return arr1.get_size() < arr2.get_size() ? true : false;
+	}
+	friend bool operator>(const dynamic_array& arr1, const dynamic_array& arr2) {
+		return arr2 < arr1;
+	}
+	friend bool operator<=(const dynamic_array& arr1, const dynamic_array& arr2) {
+		return !(arr1 > arr2);
+	}
+	friend bool operator>=(const dynamic_array& arr1, const dynamic_array& arr2) {
+		return !(arr1 < arr2);
+	}
+	friend std::ostream& operator<<(std::ostream& stream, const dynamic_array& arr) {
+		for (size_t i_
